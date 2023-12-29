@@ -268,6 +268,170 @@ for (i in 1:25) {
 }
 ```
 
+## Build a Complex Model
+
+### Setup the Layers
+
+```{r}
+#| message: false
+#| warning: false
+
+
+
+# model2 <- keras_model_sequential()
+# 
+# model2 %>%
+#   layer_flatten(input_shape = c(28, 28)) %>%
+#   layer_dense(units = 256, activation = 'relu') %>%
+#   layer_dropout(rate = 0.5) %>%
+#   layer_dense(units = 128, activation = 'relu') %>%
+#   layer_dropout(rate = 0.3) %>%
+#   layer_dense(units = 64, activation = 'relu') %>%
+#   layer_dropout(rate = 0.2) %>%
+#   layer_dense(units = 10, activation = 'softmax')
+
+model2 <- keras_model_sequential()
+
+model2 %>%
+  layer_flatten(input_shape = c(28, 28)) %>%
+  layer_dense(units = 512, activation = 'relu') %>%
+  layer_batch_normalization() %>%
+  layer_dropout(rate = 0.5) %>%
+  
+  layer_dense(units = 256, activation = 'relu') %>%
+  layer_batch_normalization() %>%
+  layer_dropout(rate = 0.4) %>%
+  
+  layer_dense(units = 128, activation = 'relu') %>%
+  layer_batch_normalization() %>%
+  layer_dropout(rate = 0.3) %>%
+  
+  layer_dense(units = 64, activation = 'relu') %>%
+  layer_batch_normalization() %>%
+  layer_dropout(rate = 0.2) %>%
+  
+  layer_dense(units = 10, activation = 'softmax')
+
+
+
+# Print the model summary
+summary(model2)
+
+
+
+```
+
+Here are the modifications (now commented) made to the original code:
+
+1.  **Added Dropout Layers:** Dropout layers are added after each dense layer to reduce overfitting. The dropout rate is a hyperparameter that determines the probability of dropping out a unit during training. Adjust the dropout rates based on your specific dataset and training performance.
+
+2.  **Increased the Number of Units in Dense Layers:** Increasing the number of units in the dense layers can increase the capacity of the model to learn complex patterns in the data.
+
+3.  **Added More Dense Layers:** Adding more layers can help the model learn hierarchical representations of the input data.
+
+4.  **Changed Activation Functions:** The 'relu' activation function is used in the hidden layers, and 'softmax' is used in the output layer for multi-class classification.
+
+5.  **Changed Optimization Algorithm:** The 'adam' optimizer is commonly used for its adaptive learning rate properties.
+
+Improvements made:
+
+1.  **Batch Normalization:** Batch normalization is added after each dense layer to stabilize and accelerate the training process. It helps in mitigating the vanishing/exploding gradient problem.
+
+2.  **Increased Units in First Dense Layer:** The number of units in the first dense layer is increased to 512 for a larger capacity.
+
+3.  **Adjusted Dropout Rates:** Dropout rates are adjusted based on the layer depth. The rates are tuned to strike a balance between preventing overfitting and retaining useful information.
+
+4.  **Changed Learning Rate:** The learning rate of the Adam optimizer is explicitly set to 0.001. This can be adjusted during hyperparameter tuning.
+
+5.  **Tuned Architecture:** The architecture is a bit deeper, with additional layers, to capture more intricate features in the data.
+
+### Visualize Architecture
+
+```{r}
+#| message: false
+#| warning: false
+#https://andrie.github.io/deepviz/index.html
+model2 %>% plot_model()
+```
+
+### Compile Model
+
+```{r}
+# Compile the model
+model2 %>% compile(
+  optimizer = optimizer_adam(lr = 0.001),
+  loss = 'sparse_categorical_crossentropy',
+  metrics = c('accuracy')
+)
+```
+
+### Train the Model
+
+```{r}
+model2 %>% fit(train_images, train_labels, epochs = 5, verbose = 2)
+```
+
+```{r}
+score <- model2 %>% evaluate(test_images, test_labels, verbose = 0)
+
+cat('Test loss:', score["loss"], "\n")
+```
+
+```{r}
+cat('Test accuracy:', score["accuracy"], "\n")
+```
+
+### Make Predictions
+
+```{r}
+predictions2 <- model2 %>% predict(test_images)
+```
+
+```{r}
+par(mfcol=c(5,5))
+par(mar=c(0, 0, 1.5, 0), xaxs='i', yaxs='i')
+for (i in 1:25) {
+  img <- test_images[i, , ]
+  img <- t(apply(img, 2, rev))
+  # subtract 1 as labels go from 0 to 9
+  predicted_label <- which.max(predictions2[i, ]) - 1
+  true_label <- test_labels[i]
+  if (predicted_label == true_label) {
+    color <- '#008800'
+  } else {
+    color <- '#bb0000'
+  }
+  image(1:28, 1:28, img, col = gray((0:255)/255), xaxt = 'n', yaxt = 'n',
+        main = paste0(class_names[predicted_label + 1], " (",
+                      class_names[true_label + 1], ")"),
+        col.main = color)
+}
+```
+
+**Key takeaway:** Complexity does not equate better results
+
+## Extracting Model and Saving to R Script
+
+### Option 1
+
+<https://stackoverflow.com/questions/60592968/how-to-properly-save-a-keras-model-in-r>
+
+<https://tensorflow.rstudio.com/tutorials/keras/save_and_load>
+
+```{r}
+# Save the model to an HDF5 file
+save_model_hdf5(model2, "model.hdf5")
+
+# Save the model architecture to an R script
+model_script <- capture.output({
+  cat("# Load required libraries\n")
+  cat("library(keras)\n\n")
+  cat("# Load the saved model\n")
+  cat("model2 <- load_model_hdf5('model.hdf5')\n")
+})
+writeLines(model_script, "model_script.R")
+```
+
 ## References
 
 <https://tensorflow.rstudio.com/tutorials/keras/classification>
