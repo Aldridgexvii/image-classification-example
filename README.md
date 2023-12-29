@@ -1,7 +1,8 @@
 # image-classification-example
- ![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/995a4544-4847-40c5-be20-20e3c8070cd2)
+
 
 Training a neural network model to classify images of clothing.
+![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/1d4a9f97-5d60-49dc-8105-c6e910c16039)
 
 
 ## Neural Network Architecture
