@@ -11,9 +11,12 @@ Training a neural network model to classify images of clothing.
 ## Training Results
 ![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/152ea663-7c52-4479-8bc8-3c64f120fd91)
 
+## 3D visualization 
+![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/03da5dbf-cfa4-4dbe-bc26-d1d39920adcf)
+
 
 ## Refrences
 Link: https://tensorflow.rstudio.com/tutorials/keras/classification
 
 ## Tools
-python, R, Keras, tensorflow
+python, R, Keras, tensorflow, t-SNE
