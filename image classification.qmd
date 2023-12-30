@@ -216,7 +216,7 @@ Training the neural network model requires the following steps:
 To start training, call the `fit` method — the model is “fit” to the training data:
 
 ```{r}
-model %>% fit(train_images, train_labels, epochs = 10, verbose = 2)
+model %>% fit(train_images, train_labels, epochs = 50, verbose = 2)
 ```
 
 As the model trains, the loss and accuracy metrics are displayed. This model reaches an accuracy of about 0.92 (or 92%) on the training data.
@@ -430,6 +430,44 @@ model_script <- capture.output({
   cat("model2 <- load_model_hdf5('model.hdf5')\n")
 })
 writeLines(model_script, "model_script.R")
+```
+
+## Visualizing Image Clusters with T-SNE
+
+```{r}
+library(Rtsne)
+library(plotly)
+library(dplyr)
+```
+
+```{r}
+img_data = array_reshape(test_images, dim=c(10000,28*28))
+img_data|>dim()
+```
+
+### Normalize Test Image data and apply T-SNE algorithm
+
+```{r}
+img_data = normalize_input(img_data)
+tsne_df = Rtsne(img_data, perplexity = 25, dims = 3)
+```
+
+### Visualize data
+
+```{r}
+plotly_df = as_tibble(tsne_df$Y)|>
+  cbind(test_labels)|>
+  mutate(labels = test_labels)|>
+  mutate(labels = as.factor(labels))
+```
+
+```{r}
+plot_3d = plot_ly(plotly_df, x= ~V1, y = ~V2, z= ~V3, color = ~labels)%>%
+  add_markers()|>
+  title(main = TSNE Visualization of image embeddings)
+plot_3d
+
+htmlwidgets::saveWidget(plot_3d, file = "tnse_plot.html")
 ```
 
 ## References
