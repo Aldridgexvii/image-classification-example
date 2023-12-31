@@ -8,7 +8,7 @@ editor: visual
 
 Train a neural network model to classify images of clothing
 
-## **Installation** 
+## **Installation**
 
 ```{r}
 # install.packages("remotes")
@@ -37,22 +37,32 @@ Train a neural network model to classify images of clothing
 
 **Note:** Install Keras and tensorflow through ANACONDA into python 3.9. in this case the python environment is "*`r-reticulate`*"
 
+```{r}
+#https://www.tidymodels.org/learn/models/parsnip-nnet/
+## not required ##
+# library(torch)
+# torch::install_torch()
+```
+
 ## Library
 
 ```{r}
 #| message: false
 #| warning: false
-#library
-library(keras)
-#library(reticulate)
-#library(tidyverse)
-library(tensorflow)
-```
 
-```{r}
-#| message: false
-#| warning: false
-library(deepviz)
+#Deep neural network
+library(keras)
+library(tensorflow)
+library(brulee)
+
+library(tidymodels)
+library(tidyverse)
+
+library(deepviz)# model architecture visualization
+
+library(Rtsne)  # t-SNE algorithm
+library(plotly) # plotly interactive visualization
+library(dplyr)
 ```
 
 ## Example
@@ -268,7 +278,9 @@ for (i in 1:25) {
 }
 ```
 
-## Build a Complex Model
+## Build a Complex Model - DNN
+
+DNN: Deep Neural Network
 
 ### Setup the Layers
 
@@ -434,11 +446,7 @@ writeLines(model_script, "model_script.R")
 
 ## Visualizing Image Clusters with T-SNE
 
-```{r}
-library(Rtsne)
-library(plotly)
-library(dplyr)
-```
+<https://www.youtube.com/watch?v=864iNqFNzc0>
 
 ```{r}
 img_data = array_reshape(test_images, dim=c(10000,28*28))
@@ -462,12 +470,148 @@ plotly_df = as_tibble(tsne_df$Y)|>
 ```
 
 ```{r}
-plot_3d = plot_ly(plotly_df, x= ~V1, y = ~V2, z= ~V3, color = ~labels)%>%
+
+plot_3d = plot_ly(plotly_df, x= ~V1, y = ~V2, z= ~V3, color = ~labels, 
+                  #hoverinfo = "labels"
+                   hovertemplate = "class"
+                  )%>%
   add_markers()|>
-  title(main = TSNE Visualization of image embeddings)
+  #add_trace(hoverinfo = "labels")|>
+  layout(title = "3D Visualization of t-SNE vectors",
+
+         legend = list(title=list(text='class of clothing')))
 plot_3d
 
 htmlwidgets::saveWidget(plot_3d, file = "tnse_plot.html")
+```
+
+```{r}
+
+tsne_vec_df = plotly_df|>
+  select(-c("test_labels"))
+split = initial_split(tsne_vec_df, prop = 0.8)
+tsne_train = training(split )
+tsne_test = testing(split)
+
+#creste a recipe
+rec = recipe(labels~. , data = tsne_train)%>% 
+  step_center(all_predictors())%>% 
+  step_scale(all_predictors())
+  #step_normalize(all_predictors())
+
+```
+
+## Neural Network MLP
+
+```{r}
+
+folds <- tsne_train %>% 
+    vfold_cv(v = 5)
+
+ctrl = control_resamples(save_pred = T, extract = I)
+
+folds
+```
+
+```{r}
+set.seed(123)
+mlp_spec = mlp( hidden_units = c(64),
+               epochs = 300L#,#100
+               #learn_rate = 0.1#,
+               #penalty = 0.01
+               )|>
+  set_engine("nnet" )|> #nnet , keras
+  set_mode("classification")
+
+mlp_spec_wf = workflow()|>
+  add_recipe(rec##|>
+              #step_impute_knn(all_predictors())|>
+               #step_normalize(all_numeric_predictors())
+             )|>
+  add_model(mlp_spec)
+
+# mlp_spec_wf_fit = mlp_spec_wf|>
+#   fit(data = training(ws_full_3))
+
+mlp_spec_wf_fit = mlp_spec_wf|>
+  fit_resamples(folds, control =ctrl, #control_stack_resamples(), #ctrl, 
+                metrics = yardstick::metric_set(accuracy, roc_auc))
+```
+
+```{r}
+collect_metrics(mlp_spec_wf_fit)
+```
+
+```{r}
+mlp_spec_wf_fit_2 = mlp_spec_wf|>
+  fit(tsne_train)
+mlp_spec_wf_fit_2 %>% extract_fit_engine()
+```
+
+```{r}
+
+
+# Make predictions for test data
+results <- testing(split) %>% 
+  dplyr::select(labels)%>%
+  bind_cols(
+    mlp_spec_wf_fit_2 %>% 
+              predict(new_data = testing(split))) %>% 
+              rename(predictions = .pred_class)
+```
+
+```{r}
+tsne_metrics <- accuracy(data = results,
+                                    truth = labels,
+                                    estimate = predictions)
+tsne_metrics
+```
+
+## Machine Learning - Random Forest
+
+```{r}
+set.seed(123)
+rf_spec = rand_forest(trees = 200, min_n = 5)|>
+  set_engine("ranger" )|> #nnet , keras
+  set_mode("classification")
+
+rf_spec_wf = workflow()|>
+  add_recipe(rec)|>
+  add_model(rf_spec)
+
+# mlp_spec_wf_fit = mlp_spec_wf|>
+#   fit(data = training(ws_full_3))
+
+rf_spec_wf_fit = rf_spec_wf|>
+  fit_resamples(folds, control =ctrl, #control_stack_resamples(), #ctrl, 
+                metrics = yardstick::metric_set(accuracy, roc_auc))
+```
+
+```{r}
+collect_metrics(rf_spec_wf_fit)
+```
+
+```{r}
+rf_spec_wf_fit_2 = rf_spec_wf|>
+  fit(tsne_train)
+rf_spec_wf_fit_2 %>% extract_fit_engine()
+```
+
+```{r}
+# Make predictions for test data
+results <- testing(split) %>% 
+  dplyr::select(labels)%>%
+  bind_cols(
+    rf_spec_wf_fit_2 %>% 
+              predict(new_data = testing(split))) %>% 
+              rename(predictions = .pred_class)
+```
+
+```{r}
+tsne_metrics <- accuracy(data = results,
+                                    truth = labels,
+                                    estimate = predictions)
+tsne_metrics
 ```
 
 ## References
