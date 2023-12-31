@@ -5,14 +5,16 @@ Training a neural network model to classify images of clothing.
 ![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/1d4a9f97-5d60-49dc-8105-c6e910c16039)
 
 
-## Neural Network Architecture
-![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/68e19dfb-e5ea-46d5-b2dd-85fbc1d148a8)
+## Deep Neural Network Summary
+![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/f4311aa3-2a3e-443b-954b-301bf4e0f699)
 
-## Training Results
-![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/152ea663-7c52-4479-8bc8-3c64f120fd91)
 
-## 3D visualization 
-![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/03da5dbf-cfa4-4dbe-bc26-d1d39920adcf)
+## t-SNE Reduction 3D Visualization 
+![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/109cc511-3b16-4531-918f-6548fccfc3ed)
+
+
+## Performance Results: tSNE + MLP vs tSNE + Random Forest
+![image](https://github.com/Aldridgexvii/image-classification-example/assets/28933637/7ec0e30e-98e2-4af8-adf5-4e3cb0b52162)
 
 
 ## Refrences
