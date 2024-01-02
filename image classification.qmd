@@ -567,7 +567,9 @@ tsne_metrics <- accuracy(data = results,
 tsne_metrics
 ```
 
-## Machine Learning - Random Forest
+## Machine Learning 
+
+### (i) ML -  Random Forest
 
 ```{r}
 set.seed(123)
@@ -603,6 +605,51 @@ results <- testing(split) %>%
   dplyr::select(labels)%>%
   bind_cols(
     rf_spec_wf_fit_2 %>% 
+              predict(new_data = testing(split))) %>% 
+              rename(predictions = .pred_class)
+```
+
+```{r}
+tsne_metrics <- accuracy(data = results,
+                                    truth = labels,
+                                    estimate = predictions)
+tsne_metrics
+```
+
+### (ii) ML - XGBoost
+
+```{r}
+set.seed(123)
+xg_spec = boost_tree(trees = 1000)|>
+  set_engine("xgboost" )|> 
+  set_mode("classification")
+
+xg_spec_wf = workflow()|>
+  add_recipe(rec)|>
+  add_model(xg_spec)
+
+
+xg_spec_wf_fit = xg_spec_wf|>
+  fit_resamples(folds, control =ctrl, #control_stack_resamples(), #ctrl, 
+                metrics = yardstick::metric_set(accuracy, roc_auc))
+```
+
+```{r}
+collect_metrics(xg_spec_wf_fit)
+```
+
+```{r}
+xg_spec_wf_fit_2 = xg_spec_wf|>
+  fit(tsne_train)
+xg_spec_wf_fit_2 %>% extract_fit_engine()
+```
+
+```{r}
+# Make predictions for test data
+results <- testing(split) %>% 
+  dplyr::select(labels)%>%
+  bind_cols(
+    xg_spec_wf_fit_2 %>% 
               predict(new_data = testing(split))) %>% 
               rename(predictions = .pred_class)
 ```
